@@ -105,6 +105,8 @@ private:
 
     void addMappedAction(KisSignalMapper* mapper, const QString &actionName, const int value, QActionGroup *group = nullptr);
 
+    bool nodeEditable();
+
 private Q_SLOTS:
 
     void showEditor();
