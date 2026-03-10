@@ -222,9 +222,8 @@ public:
             FcCharSet *cs = nullptr;
             FcFontSetSP fontSet(FcFontSort(FcConfigGetCurrent(), p.data(), FcFalse, &cs, &result));
 
-            if (fontSet->nfont == 0) {
-                qCritical() << "Cannot load an fallback font, no fonts found";
-            }
+            KIS_ASSERT_X(fontSet->nfont > 0, "No fallback fonts in font registry", "Cannot load an fallback font, no fonts found");
+
             for (int j = 0; j < fontSet->nfont; j++) {
                 if(std::optional<KoFFWWSConverter::FontFileEntry> fontFileEntry = getFontFileEntry(fontSet->fonts[j]) ) {
                     QByteArray utfData = fontFileEntry->fileName.toUtf8();
@@ -594,16 +593,22 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(QVector<int> &lengths,
                 faces.emplace_back(face);
                 d->typeFaces().insert(fontCacheEntry, face);
             } else {
-                qWarning() << "Failed to load font " << font.fileName << " in font registry, FreeType error:" << err;
+                qWarning() << "Failed to load font" << font.fileName << "in font registry, FreeType error:" << err;
                 if (faces.size() > 0) {
                     faces.emplace_back(faces.at(faces.size()-1));
                 } else {
+                    const QMap<QString, qreal> axisSettings;
+                    if (d->fallbackFont().data()->size->metrics.x_ppem == 0) {
+                        // if the font has not been configured yet, it's ppem is set to 0, so we test that and configure it.
+                        configureFaces({d->fallbackFont()}, 12, 1.0, 72, 72, axisSettings);
+                    }
+
                     faces.emplace_back(d->fallbackFont());
                 }
             }
         }
     }
-    if (fonts.size() == 0) {
+    if (faces.size() == 0) {
         lengths = QVector<int>();
     }
 
